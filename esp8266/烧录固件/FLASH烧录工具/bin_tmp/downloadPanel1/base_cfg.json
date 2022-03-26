@@ -1,0 +1,9 @@
+{
+"uart_show_debug":false,
+"uart0_bit": 9600,
+
+"ap_ssid":"Hx-Kong_",
+"ap_passwd":"",
+
+"dev_flag":"MKG"
+}
