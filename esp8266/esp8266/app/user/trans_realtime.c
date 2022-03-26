@@ -14,6 +14,7 @@
 #include "mqtt/mqtt.h"
 #include "json/cJSON.h"
 #include "c_base64.h"
+#include "sbufhex.h"
 
 typedef struct _TzhNetCache_Recv{
 	uchar cache[513];
@@ -166,83 +167,29 @@ void ICACHE_FLASH_ATTR trRestart()
 //将数据输到下位机
 void ICACHE_FLASH_ATTR mqtt_data_trans_to_mcu(const char*buf,int len)
 {	
-	int err_json=1;
-
+	//
 	//解释
-	cJSON *json;
-	((char*)buf)[len]=0x00;
-	json=cJSON_Parse(buf);
-	if(json)
-	{
-		char cmd[32]={0};
-		int dlen=0;
-		cJSON *jsonVal;
+	//
+	char*debuf=(char*)os_malloc(len+1);
+	int debaseLen=0;
 
-		jsonVal=cJSON_GetObjectItem(json,"cmd");
-		if(jsonVal)
+	memset(debuf,0,len+1);
+	os_printf("len=%d buf=%s\n",len,buf);
+
+	debaseLen=sbufDecode((char*)buf,debuf);
+	if(debaseLen>0)
+	{		
+		uchar mqttCmdOk;
+		//发送到BUFF
+		hxNetGetFrame(debuf,debaseLen,&g_coreHxnetCmd,&mqttCmdOk);
+		//处理指令
+		if(mqttCmdOk)
 		{
-			strncpy(cmd,jsonVal->valuestring,sizeof(cmd));
-
-			if(0==strcmp(cmd,"data"))
-			{
-				jsonVal=cJSON_GetObjectItem(json,"relation");
-				if(jsonVal)
-				{
-					cJSON *jv;
-					jv=cJSON_GetObjectItem(jsonVal,"len");
-					if(jsonVal)
-					{
-						dlen=jv->valueint;
-					}
-
-					jv=cJSON_GetObjectItem(jsonVal,"buf");
-					if(jsonVal)
-					{
-						//system_set_os_print(1);
-						//os_printf("len=%d buf=%s\n",dlen,etbuf);
-						//system_set_os_print(0);
-						//
-						unsigned char*debuf=NULL;
-						int debaseLen=0;
-						char*etbuf=(char*)os_malloc(len);
-						memset(etbuf,0,len);
-						strncpy(etbuf,jv->valuestring,len);
-						debaseLen=base64Decode(etbuf,strlen(etbuf),&debuf);
-						if(debaseLen==dlen)
-						{
-							
-							uchar mqttCmdOk;
-							//发送到BUFF
-							hxNetGetFrame(debuf,debaseLen,&g_coreHxnetCmd,&mqttCmdOk);
-							/*
-							//打印信息
-							int i=0;
-							for(;i<debaseLen;i++)
-							{
-								os_printf("%02x ",(unsigned char)debuf[i]);
-							}*/
-							//处理指令
-							if(mqttCmdOk)
-							{
-								//os_printf("mqttCmd.flag=%s\n",g_coreHxnetCmd.flag);
-								mcu_proc(g_coreHxnetCmd.flag, g_coreHxnetCmd.parameter_len, g_coreHxnetCmd.parameter);
-							}
-							
-							err_json=0;
-						}	
-						os_free(etbuf);
-						os_free(debuf);
-					}					
-				}
-			}
-		}		
-		cJSON_Delete(json);	
+			os_printf("mqttCmd.flag=%s\n",g_coreHxnetCmd.flag);
+			mcu_proc(g_coreHxnetCmd.flag, g_coreHxnetCmd.parameter_len, g_coreHxnetCmd.parameter);
+		}
 	}
-
-	/*/是否为JSON数据
-	if(err_json)
-	{
-	}*/
+	os_free(debuf);
 	
 	//发送到透传
 	uart0_tx_buffer((uint8*)buf,(uint16)len);
@@ -252,29 +199,10 @@ void ICACHE_FLASH_ATTR mqtt_data_trans_to_mcu(const char*buf,int len)
 /////////////////////////////////////////////////////////////////
 void ICACHE_FLASH_ATTR mqttSendBuff(char*buf,int buflen)
 {
-			int ba64len=0;
-			int ba64buflen=0;
-			char*ba64=NULL;
-			cJSON *root,*its;
-			char *out;
-
-			ba64buflen=buflen*2+16;
-			ba64=(char*)os_malloc(ba64buflen);
-			memset(ba64,0,ba64buflen);
-			ba64len=base64_encode(buf,buflen,ba64);
-			//生成JSON
-			root=cJSON_CreateObject();
-			cJSON_AddStringToObject(root,"cmd","data");
-			cJSON_AddItemToObject(root,"relation",its = cJSON_CreateObject());
-			cJSON_AddNumberToObject(its,"len" , buflen);
-			cJSON_AddStringToObject(its,"buf" , ba64);
-			//
-			os_free(ba64);
-			out=cJSON_PrintUnformatted(root);
+			int ba16len=0;
+			char* ba16=sbufEncode(buf,buflen,&ba16len);
 			//MQTT回传MSD服务信息
-			MQTT_Publish(&mqttClient, g_tmpMQTTPublish, out,strlen(out), 0, 0);
-			os_free(out);
-			cJSON_Delete(root);
+			MQTT_Publish(&mqttClient, g_tmpMQTTPublish, ba16,ba16len, 0, 0);
 }
 
 
@@ -286,7 +214,7 @@ void ICACHE_FLASH_ATTR kgDevStatus(bool kg1)
 
 	parm[0]=0x10;
 	parm[1]=kg1;
-	gen_len=hxNetCreateFrame(g_jsdo.dev_flag, 2,parm,true,gen_buf);
+	gen_len=hxNetCreateFrame("KG", 2,parm,true,gen_buf);
 	//	
 	mqttSendBuff(gen_buf,gen_len);
 }
@@ -318,7 +246,7 @@ void ICACHE_FLASH_ATTR kg_setClose()
 //上位机给MCU的逻辑处理
 void ICACHE_FLASH_ATTR mcu_proc(char*flag,int param_len,uchar* param)
 {
-   if(0==strcmp(flag,g_jsdo.dev_flag))
+   if(0==strcmp(flag,"KG"))
    {
 	   uchar cmd=param[0];
 
@@ -398,7 +326,7 @@ void ICACHE_FLASH_ATTR trRecvSerialHandler()
 	{
 			if(0==os_strcmp(g_coreHxnetCmd.flag,"#restart"))
 			{
-				//重启模块
+				//重启模块--
 				system_restore();
 				system_restart();
 			}
@@ -435,56 +363,12 @@ void ICACHE_FLASH_ATTR trRecvSerialHandler()
 				system_restore();
 				system_restart();
 			}
-			else 
-			{
-				//跳到发送到MQTT
-				goto _go_send;
-			}
 	}
-	else
-	{
-			//======================
-			int ba64len=0;
-			int ba64buflen=0;
-			char*ba64=NULL;
-			cJSON *root,*its;
-			char *out;
-_go_send:
-			ba64buflen=g_recvUartBuf.len*2+16;
-			ba64=(char*)os_malloc(ba64buflen);
-			memset(ba64,0,ba64buflen);
-			ba64len=base64_encode(g_recvUartBuf.cache,g_recvUartBuf.len,ba64);
-			//生成JSON
-			root=cJSON_CreateObject();
-			cJSON_AddStringToObject(root,"cmd","data");
-			cJSON_AddItemToObject(root,"relation",its = cJSON_CreateObject());
-			cJSON_AddNumberToObject(its,"len" , g_recvUartBuf.len);
-			cJSON_AddStringToObject(its,"buf" , ba64);
-			//
-			os_free(ba64);
-			out=cJSON_PrintUnformatted(root);
-			//MQTT回传MSD服务信息
-			MQTT_Publish(&mqttClient, g_tmpMQTTPublish, out,strlen(out), 0, 0);
-			os_free(out);
-			cJSON_Delete(root);
-	}
-
+	
 	//缓冲区全部清空
 	g_recvUartBuf.len=0;
 	g_recvUartBuf.cache[0]=0x00;
 
-	/*调整缓冲区
-	if(tmp>0)
-	{
-		int n;
-		g_recvUartBuf.len-=tmp;
-		for(n=0;n<g_recvUartBuf.len;n++)
-		{
-			g_recvUartBuf.cache[n]=g_recvUartBuf.cache[tmp+n];
-		}
-
-		goto _ncc;
-	}*/
 }
 
 //////////////////////////////////////////////////////////////////
