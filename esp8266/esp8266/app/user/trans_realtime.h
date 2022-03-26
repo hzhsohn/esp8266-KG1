@@ -11,6 +11,13 @@
 #include <driver/spi.h>
 #include "data_struct.h"
 
+
+//GPIO2 Êä³ö
+#define GP2_IO_MUX     PERIPHS_IO_MUX_GPIO2_U
+#define GP2_IO_NUM     2
+#define GP2_IO_FUNC    FUNC_GPIO2
+
+
 void ICACHE_FLASH_ATTR wifi_handle_event_cb(System_Event_t *evt);
 void ICACHE_FLASH_ATTR trans_yun_keep_timer_cb();
 void ICACHE_FLASH_ATTR trans_getNetTimeRecv(char* data,int len);

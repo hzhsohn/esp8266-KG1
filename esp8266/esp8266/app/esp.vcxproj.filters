@@ -147,6 +147,9 @@
     <ClInclude Include="user\c_base64.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="user\sbufhex.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="user\user_main.c">
@@ -183,6 +186,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="user\JsonErrAP.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="user\sbufhex.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

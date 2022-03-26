@@ -1,5 +1,5 @@
 {
-"uart_show_debug":false,
+"uart_show_debug":true,
 "uart0_bit": 9600,
 
 "ap_ssid":"Hx-Kong_",

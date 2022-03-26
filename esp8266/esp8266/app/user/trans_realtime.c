@@ -9,6 +9,7 @@
 #include <driver/spi.h>
 #include "data_struct.h"
 #include "hxnet-protocol.h"
+#include "gpio.h"
 #include "json_do.h"
 #include "hxk_ota.h"
 #include "mqtt/mqtt.h"
@@ -44,6 +45,8 @@ bool g_transUartIsUsed=false;
 //////////////////////////////////////////////////////////////////
 //配置WIFI路由连接状态
 EzhRouterSTA g_isRouterSTA=ezhRouterSTAUnknow;
+//开关状态
+int g_kg1=0;
 
 //MQTT的发布信息的ID,设备名称,设备唯一ID
 LOCAL char g_tmpMQTTSubscr[48]={0};
@@ -60,9 +63,8 @@ void ICACHE_FLASH_ATTR getWorkMethod();
 void ICACHE_FLASH_ATTR searchFrameData();
 
 //开关操作
-void ICACHE_FLASH_ATTR kgDevStatus(bool kg1);
-void ICACHE_FLASH_ATTR kg_setOpen();
-void ICACHE_FLASH_ATTR kg_setClose();
+void ICACHE_FLASH_ATTR kgDevStatus();
+void ICACHE_FLASH_ATTR kg_setOnOff(int b);
 ////////////////////////////////////////////////////////
 //
 MQTT_Client mqttClient;
@@ -148,6 +150,11 @@ void ICACHE_FLASH_ATTR sysTrans_RealtimeInit()
 	strcpy(g_tmpDevName,fixedInfo.dev_id);
 	strcpy(g_tmpMQTTSubscr,fixedInfo.mqtt_subscr);
 	strcpy(g_tmpMQTTPublish,fixedInfo.mqtt_publish);
+	//上电恢复状态
+	TzhEEPRomDevStatus currentDevStatus={0};	
+	spi_flash_read(EEPROM_DATA_ADDR_DevStatus * SPI_FLASH_SEC_SIZE,(uint32*)&currentDevStatus,sizeof(TzhEEPRomDevStatus));
+	g_kg1=currentDevStatus.kg1;
+	kgDevStatus();
 	
 }
 void ICACHE_FLASH_ATTR trRestartHandler()
@@ -174,7 +181,7 @@ void ICACHE_FLASH_ATTR mqtt_data_trans_to_mcu(const char*buf,int len)
 	int debaseLen=0;
 
 	memset(debuf,0,len+1);
-	os_printf("len=%d buf=%s\n",len,buf);
+	os_printf("\nmqtt recv len=%d\n",len);
 
 	debaseLen=sbufDecode((char*)buf,debuf);
 	if(debaseLen>0)
@@ -185,7 +192,6 @@ void ICACHE_FLASH_ATTR mqtt_data_trans_to_mcu(const char*buf,int len)
 		//处理指令
 		if(mqttCmdOk)
 		{
-			os_printf("mqttCmd.flag=%s\n",g_coreHxnetCmd.flag);
 			mcu_proc(g_coreHxnetCmd.flag, g_coreHxnetCmd.parameter_len, g_coreHxnetCmd.parameter);
 		}
 	}
@@ -199,47 +205,37 @@ void ICACHE_FLASH_ATTR mqtt_data_trans_to_mcu(const char*buf,int len)
 /////////////////////////////////////////////////////////////////
 void ICACHE_FLASH_ATTR mqttSendBuff(char*buf,int buflen)
 {
-			int ba16len=0;
-			char* ba16=sbufEncode(buf,buflen,&ba16len);
-			//MQTT回传MSD服务信息
-			MQTT_Publish(&mqttClient, g_tmpMQTTPublish, ba16,ba16len, 0, 0);
+		int ba16len=0;
+		char* ba16=sbufEncode(buf,buflen,&ba16len);
+		//MQTT回传MSD服务信息
+		MQTT_Publish(&mqttClient, g_tmpMQTTPublish, ba16,ba16len, 0, 0);
 }
 
 
-void ICACHE_FLASH_ATTR kgDevStatus(bool kg1)
+void ICACHE_FLASH_ATTR kgDevStatus()
 {
 	uchar gen_buf[128]={0};
 	int gen_len=0;
 	char parm[2];
 
 	parm[0]=0x10;
-	parm[1]=kg1;
+	parm[1]=g_kg1;
 	gen_len=hxNetCreateFrame("KG", 2,parm,true,gen_buf);
 	//	
 	mqttSendBuff(gen_buf,gen_len);
 }
 
-void ICACHE_FLASH_ATTR kg_setOpen()
+void ICACHE_FLASH_ATTR kg_setOnOff(int b)
 {
 	TzhEEPRomDevStatus currentDevStatus={0};
-	currentDevStatus.kg1=1;
-	setGP2_OnOff(currentDevStatus.kg1);
-	//保存开关状态
+	currentDevStatus.kg1=b;
+	g_kg1=b;
+	//保存开关状态--
 	spi_flash_erase_sector(EEPROM_DATA_ADDR_DevStatus);
 	spi_flash_write(EEPROM_DATA_ADDR_DevStatus * SPI_FLASH_SEC_SIZE,(uint32*)&currentDevStatus,sizeof(TzhEEPRomDevStatus));
 	//
-	kgDevStatus(true);
-}
-void ICACHE_FLASH_ATTR kg_setClose()
-{
-	TzhEEPRomDevStatus currentDevStatus={0};
-	currentDevStatus.kg1=0;
-	setGP2_OnOff(currentDevStatus.kg1);
-	//保存开关状态
-	spi_flash_erase_sector(EEPROM_DATA_ADDR_DevStatus);
-	spi_flash_write(EEPROM_DATA_ADDR_DevStatus * SPI_FLASH_SEC_SIZE,(uint32*)&currentDevStatus,sizeof(TzhEEPRomDevStatus));
-	//
-	kgDevStatus(false);
+	GPIO_OUTPUT_SET(GPIO_ID_PIN(GP2_IO_NUM), g_kg1);
+	kgDevStatus();
 }
 
 //////////////////////////////////////////////////////////////////
@@ -254,9 +250,7 @@ void ICACHE_FLASH_ATTR mcu_proc(char*flag,int param_len,uchar* param)
 	   {
           case 0x00:  //获取状态
           {
-			  	TzhEEPRomDevStatus currentDevStatus={0};	
-				spi_flash_read(EEPROM_DATA_ADDR_DevStatus * SPI_FLASH_SEC_SIZE,(uint32*)&currentDevStatus,sizeof(TzhEEPRomDevStatus));
-				kgDevStatus(currentDevStatus.kg1);
+			  	kgDevStatus();
           }
           break;
 		  case 0x01: //批量控制开关
@@ -264,11 +258,11 @@ void ICACHE_FLASH_ATTR mcu_proc(char*flag,int param_len,uchar* param)
 				//0x01 & 循环[uchar 通道号码0~通道数量n排列的状态] ::::::::::::: 批量通道开关
                 if(param[1])
 				{
-					kg_setOpen();
+					kg_setOnOff(1);
 				}
 				else
 				{
-					kg_setClose();
+					kg_setOnOff(0);
 				}
           }
           break;
@@ -279,11 +273,11 @@ void ICACHE_FLASH_ATTR mcu_proc(char*flag,int param_len,uchar* param)
 				{
 					if(param[2])
 					{
-						kg_setOpen();
+						kg_setOnOff(1);
 					}
 					else
 					{
-						kg_setClose();
+						kg_setOnOff(0);
 					}
 				}
           }
@@ -349,10 +343,6 @@ void ICACHE_FLASH_ATTR trRecvSerialHandler()
 				//----------------------------------
 				//重启模块
 				trRestart();
-			}
-			else if(0==os_strcmp(g_coreHxnetCmd.flag,"#chipid"))
-			{
-				getChipID();
 			}
 			else if(0==os_strcmp(g_coreHxnetCmd.flag,"#apcfg"))
 			{
@@ -497,18 +487,6 @@ void ICACHE_FLASH_ATTR getUserRSSI()
 	
 	rssi=wifi_station_get_rssi();
 	gen_len=hxNetCreateFrame("#rssi", 1,&rssi,true,gen_buf);
-	uart0_tx_buffer(gen_buf,gen_len);
-}
-
-void ICACHE_FLASH_ATTR getChipID()
-{
-	unsigned char gen_buf[64]={0};
-	int gen_len=0;
-	
-	char chipid[16];//芯片ID
-	os_sprintf(chipid,"%02X",system_get_chip_id());;
-	
-	gen_len=hxNetCreateFrame("#chipid", strlen(chipid)+1,chipid,true,gen_buf);
 	uart0_tx_buffer(gen_buf,gen_len);
 }
 

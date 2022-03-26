@@ -75,18 +75,13 @@ void user_plug_init(void);
 #define GP14_IO_NUM     14
 #define GP14_IO_FUNC    FUNC_GPIO14
 
-//GPIO2 输出
-bool gp2_isOn;
-#define GP2_IO_MUX     PERIPHS_IO_MUX_GPIO2_U
-#define GP2_IO_NUM     2
-#define GP2_IO_FUNC    FUNC_GPIO2
-
 //LED WIFI信号灯
 #define WIFI_LED_IO_MUX     GPIO4_IO_MUX
 #define WIFI_LED_IO_NUM     GPIO4_IO_NUM
 #define WIFI_LED_IO_FUNC    GPIO4_IO_FUNC
 
 //----------------------------------------------------------------------
+extern int g_kg1;
 //
 LOCAL struct keys_param keys;
 LOCAL struct single_key_param *single_key[PLUG_KEY_NUM];
@@ -100,12 +95,6 @@ LOCAL void ICACHE_FLASH_ATTR user_plug_long_press(void);
 //////////////////////////////////////////////////////////////////////////////
 void ICACHE_FLASH_ATTR setWifiLed(EzhLedMethod mode);
 
-void ICACHE_FLASH_ATTR setGP2_OnOff(bool b)
-{
-	gp2_isOn=b;
-	GPIO_OUTPUT_SET(GPIO_ID_PIN(GP2_IO_NUM), b);
-}
-//
 LOCAL void ICACHE_FLASH_ATTR user_gpio_init(void)
 {
 	//--------------------------------------------------------------
@@ -114,7 +103,7 @@ LOCAL void ICACHE_FLASH_ATTR user_gpio_init(void)
     setWifiLed(ezhLedMethodInit); //初始化时关闭
 
 	PIN_FUNC_SELECT(GP2_IO_MUX, GP2_IO_FUNC);
-	setGP2_OnOff(true); //初始化电平
+	GPIO_OUTPUT_SET(GPIO_ID_PIN(GP2_IO_NUM), true);
 
 	//
 	//PIN_FUNC_SELECT(GP12_IO_MUX, GP12_IO_FUNC);
@@ -182,7 +171,8 @@ void ICACHE_FLASH_ATTR user_plug_init(void)
 //GPIO0 短按
 LOCAL void ICACHE_FLASH_ATTR user_plug_short_press(void)
 {
-	setGP2_OnOff(!gp2_isOn);
+	bool b=!g_kg1;
+	kg_setOnOff(b);
 }
 //GPIO0 长按
 LOCAL void ICACHE_FLASH_ATTR user_plug_long_press(void)
@@ -235,9 +225,7 @@ void user_init(void)
 	TzhEEPRomUserFixedInfo fixRom={0};
 
 	//printf init message 
-	os_printf("-------------------------\n");
 	os_printf("MQTT-HXK Firmware: v1.0 \n");
-	os_printf("Core Version:%s\n",system_get_sdk_version());
 	os_printf("Copyright:www.hx-kong.com\n\n");
 
 
