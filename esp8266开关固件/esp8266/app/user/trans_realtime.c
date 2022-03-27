@@ -65,6 +65,7 @@ void ICACHE_FLASH_ATTR searchFrameData();
 //开关操作
 void ICACHE_FLASH_ATTR kgDevStatus();
 void ICACHE_FLASH_ATTR kg_setOnOff(int b);
+void ICACHE_FLASH_ATTR tkDevStatus();
 ////////////////////////////////////////////////////////
 //
 MQTT_Client mqttClient;
@@ -130,7 +131,8 @@ void ICACHE_FLASH_ATTR mqttDataCb(uint32_t *args, const char* topic, uint32_t to
 ///////////////////////////////////////////////////////////////
 //重启
 LOCAL os_timer_t g_trRestartTimer;
-LOCAL os_timer_t g_trRecvSerialTimer;
+//TK模式工作继时器
+LOCAL os_timer_t g_trTKTimer;
 
 //
 void ICACHE_FLASH_ATTR sysTrans_RealtimeInit()
@@ -148,12 +150,21 @@ void ICACHE_FLASH_ATTR sysTrans_RealtimeInit()
 	strcpy(g_tmpDevName,fixedInfo.dev_id);
 	strcpy(g_tmpMQTTSubscr,fixedInfo.mqtt_subscr);
 	strcpy(g_tmpMQTTPublish,fixedInfo.mqtt_publish);
-	//上电恢复状态
-	TzhEEPRomDevStatus currentDevStatus={0};	
-	spi_flash_read(EEPROM_DATA_ADDR_DevStatus * SPI_FLASH_SEC_SIZE,(uint32*)&currentDevStatus,sizeof(TzhEEPRomDevStatus));
-	g_kg1=(currentDevStatus.kg1==0)?0:1;
-	kgDevStatus();
 	
+	if(0==strcmp(g_dev_flag,"KG1"))
+	{
+		//上电恢复状态
+		TzhEEPRomDevStatus currentDevStatus={0};	
+		spi_flash_read(EEPROM_DATA_ADDR_DevStatus * SPI_FLASH_SEC_SIZE,(uint32*)&currentDevStatus,sizeof(TzhEEPRomDevStatus));
+		g_kg1=(currentDevStatus.kg1==0)?0:1;
+		GPIO_OUTPUT_SET(GPIO_ID_PIN(GP2_IO_NUM), g_kg1);
+	}
+	else
+	{
+		//默认关闭
+		g_kg1=0;
+		GPIO_OUTPUT_SET(GPIO_ID_PIN(GP2_IO_NUM), false);
+	}
 }
 void ICACHE_FLASH_ATTR trRestartHandler()
 {
@@ -165,6 +176,23 @@ void ICACHE_FLASH_ATTR trRestart()
 {
 	os_timer_disarm(&g_trRestartTimer);
 	os_timer_setfn(&g_trRestartTimer, (os_timer_func_t *)trRestartHandler, NULL);
+	os_timer_arm(&g_trRestartTimer, 1000, 0);
+}
+
+
+void ICACHE_FLASH_ATTR trTKModeHandler()
+{	
+	GPIO_OUTPUT_SET(GPIO_ID_PIN(GP2_IO_NUM), false);
+	g_kg1=false;
+	tkDevStatus();
+}
+void ICACHE_FLASH_ATTR trTKMode(unsigned int mils)
+{
+	GPIO_OUTPUT_SET(GPIO_ID_PIN(GP2_IO_NUM), true);
+	g_kg1=true;
+	tkDevStatus();
+	os_timer_disarm(&g_trRestartTimer);
+	os_timer_setfn(&g_trRestartTimer, (os_timer_func_t *)trTKModeHandler, NULL);
 	os_timer_arm(&g_trRestartTimer, 1000, 0);
 }
 
@@ -199,8 +227,6 @@ void ICACHE_FLASH_ATTR mqtt_data_trans_to_mcu(const char*buf,int len)
 	}
 	os_free(debuf);
 	
-	//发送到透传
-	
 }
 
 
@@ -222,8 +248,19 @@ void ICACHE_FLASH_ATTR kgDevStatus()
 	char parm[1]={0};
 	
 	parm[0]=g_kg1;
-	//os_printf("kgDevStatus g_kg1=%d   parm=%d \n",g_kg1,parm[1]);
+
 	gen_len=hxNetCreateFrame("kg#a", 1,parm,true,gen_buf);
+	mqttSendBuff(gen_buf,gen_len);
+}
+
+void ICACHE_FLASH_ATTR tkDevStatus()
+{
+	uchar gen_buf[128]={0};
+	int gen_len=0;
+	char parm[1]={0};
+	
+	parm[0]=g_kg1;
+	gen_len=hxNetCreateFrame("tk#a", 1,parm,true,gen_buf);
 	mqttSendBuff(gen_buf,gen_len);
 }
 
@@ -237,7 +274,6 @@ void ICACHE_FLASH_ATTR kg_setOnOff(int b)
 	spi_flash_write(EEPROM_DATA_ADDR_DevStatus * SPI_FLASH_SEC_SIZE,(uint32*)&currentDevStatus,sizeof(TzhEEPRomDevStatus));
 	//
 	GPIO_OUTPUT_SET(GPIO_ID_PIN(GP2_IO_NUM), b);
-	//os_printf("kg_setOnOff g_kg1=%d\n",g_kg1);
 }
 
 //////////////////////////////////////////////////////////////////
@@ -263,6 +299,29 @@ void ICACHE_FLASH_ATTR mcu_proc(char*flag,int param_len,uchar* param)
 			kgDevStatus();
 		}
 	}
+
+	else if(0==strcmp(flag,"tk#0"))
+	{
+		tkDevStatus();
+	}
+	else if(0==strcmp(flag,"tk#1"))
+	{
+		//循环[unsigned int 通道号码0~通道数量n排列的状态] ::::::::::::: 批量通道开关
+		unsigned int mils=0;
+		memcpy(&mils,&param[0],4);
+		trTKMode(mils);
+	}
+	else if(0==strcmp(flag,"tk#2"))
+	{
+		//uchar 通道号码,uchar 开或关0_1 ::::::::::::: 单通道开关控制
+		if(0==param[0])
+		{
+			unsigned int mils=0;
+			memcpy(&mils,&param[1],4);
+			trTKMode(mils);
+		}
+	}
+
 }
 //数据来源信息
 void ICACHE_FLASH_ATTR trans_uart_recv(char* data,int len)
