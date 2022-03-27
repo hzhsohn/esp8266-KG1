@@ -48,6 +48,7 @@ EzhRouterSTA g_isRouterSTA=ezhRouterSTAUnknow;
 int g_kg1=0;
 
 //MQTT的发布信息的ID,设备名称,设备唯一ID
+LOCAL char g_dev_flag[36]={0};
 LOCAL char g_tmpMQTTSubscr[48]={0};
 LOCAL char g_tmpMQTTPublish[48]={0};
 LOCAL char g_tmpDevName[38]={0};
@@ -143,7 +144,7 @@ void ICACHE_FLASH_ATTR sysTrans_RealtimeInit()
 					(uint32*)&fixedInfo,
 					sizeof(TzhEEPRomUserFixedInfo));
 	strcpy(g_tmpDevUUID,config.devUUID);
-	
+	strcpy(g_dev_flag,fixedInfo.dev_flag);
 	strcpy(g_tmpDevName,fixedInfo.dev_id);
 	strcpy(g_tmpMQTTSubscr,fixedInfo.mqtt_subscr);
 	strcpy(g_tmpMQTTPublish,fixedInfo.mqtt_publish);
@@ -309,7 +310,7 @@ void ICACHE_FLASH_ATTR searchFrameData()
 
 	//硬件标识
 	strcat(gen_json,"{\"f\":\"");
-	strcat(gen_json,g_jsdo.dev_flag);
+	strcat(gen_json,g_dev_flag);
 	//硬件名称
 	strcat(gen_json,"\",\"n\":\"");
 	strcat(gen_json,g_tmpDevName);

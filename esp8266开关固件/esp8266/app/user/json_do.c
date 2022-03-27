@@ -62,13 +62,6 @@ BOOL ICACHE_FLASH_ATTR useJsonData(TzhJsonDo *jd)
 			////os_printf("%s\n",jsonVal->valuestring);
 		}
 		
-		jsonVal=cJSON_GetObjectItem(json,"dev_flag");
-		if(jsonVal)
-		{
-			strncpy(jd->dev_flag,jsonVal->valuestring,sizeof(jd->dev_flag)-1);
-			////os_printf("%s\n",jsonVal->valuestring);
-		}
-
 		cJSON_Delete(json);
 
 		ret=TRUE;

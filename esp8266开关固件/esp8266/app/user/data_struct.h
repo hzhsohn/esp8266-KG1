@@ -69,7 +69,7 @@ typedef struct _TzhEEPRomDevConfig
 	char factoryHxKongFlag[16];
 	//-账号和绑定信息
 	char devUUID[68];  //设备的唯一序列号
-
+	
 }TzhEEPRomDevConfig;
 
 /*
@@ -89,6 +89,9 @@ typedef struct _TzhEEPRomUserFixedInfo
 	char mqtt_client_id[48];
 	char mqtt_user[36];
 	char mqtt_passwd[36];
+	
+	//设置类型,KG1 开关模式 ,TK1 延时开关
+	char dev_flag[36];
 
 }TzhEEPRomUserFixedInfo;
 

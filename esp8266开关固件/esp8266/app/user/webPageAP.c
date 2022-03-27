@@ -297,8 +297,8 @@ web_recv_cb(void *arg, char *pusrdata, unsigned short length)
 					{
 						goto _nnc;
 					}
-					spi_flash_read(EEPROM_DATA_ADDR_Web0 * SPI_FLASH_SEC_SIZE,(uint32*)htmldata,8000);
-					for(i=0;i<7999;i++)
+					spi_flash_read(EEPROM_DATA_ADDR_Web0 * SPI_FLASH_SEC_SIZE,(uint32*)htmldata,9999);
+					for(i=0;i<9999;i++)
 					{
 						if(htmldata[i]==0x00 || htmldata[i]==0xFF)
 						{ break; }
@@ -364,7 +364,8 @@ web_recv_cb(void *arg, char *pusrdata, unsigned short length)
 				urlGetParameter(parameter,"mqtt_client_id",fixedInfo.mqtt_client_id);
 				urlGetParameter(parameter,"mqtt_user",fixedInfo.mqtt_user);
 				urlGetParameter(parameter,"mqtt_passwd",fixedInfo.mqtt_passwd);
-
+				//				
+				urlGetParameter(parameter,"devflag",fixedInfo.dev_flag);
 				//转换成UTF8
 				urldecode(fixedInfo.sta_ssid,strlen(fixedInfo.sta_ssid));
 				urldecode(fixedInfo.sta_passwd,strlen(fixedInfo.sta_passwd));

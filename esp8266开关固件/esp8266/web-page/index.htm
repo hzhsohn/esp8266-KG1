@@ -154,7 +154,8 @@ function $(d)
 {return document.getElementById(d);}
 function validate_form(){
 var ssid=document.form1.ssid.value;
-var dev_id=document.form1.dev_id.value;
+var devNo=document.form1.devNo.value;
+var devflag=document.form1.devflag.value;
 var mqtt_host=document.form1.mqtt_host.value;
 if(ssid==""){
 alert("ssid不能为空");
@@ -168,10 +169,9 @@ if(mqtt_host==""){
 alert("域名或IP不能为空");
 return false;
 }
-if(""==document.form1.mqtt_publish.value)
-{ document.form1.mqtt_publish.value="_"+dev_id;}
-if(""==document.form1.mqtt_subscr.value)
-{document.form1.mqtt_subscr.value=dev_id;}
+document.form1.mqtt_publish.value="_"+devNo+"-"+devflag;
+document.form1.mqtt_subscr.value=devNo+"-"+devflag;
+document.form1.dev_id.value=devNo+"-"+devflag;
 document.form1.submit();
 }
 var isSSIDShow=0;
@@ -241,11 +241,17 @@ $('typediv2').style.display='none';
 <input id="wifipwd" type=text name="wifipwd" class="inp_txt w48" placeholder='输入WIFI密码'/>
 <input type="button" class="txt_btn"  value="默  认" onClick="javascript:wifipwd.value=defaultWifiPasswd()">
 </div>
+<h3>工作模式</h3>
+<div style="height:50px; padding-top:10px" align="center">
+<label><input name="devflag" type="radio" value="KG1" checked>开关模式 (KG1)</label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<label><input name="devflag" type="radio" value="TK1">延时开关 (TK1)</label>
+</div>
 <h3>联网数据交互
-<span>通讯标准 MQTT-HXK v1.0</span></h3>
+  <span>通讯标准 MQTT-HXK v1.0</span></h3>
 <div class=line >
 <span>设备编号 :</span>
-<input name="dev_id" type=text class="inp_txt w48" id="dev_id" value=""  placeholder='输入设备控制标识'/>
+<input name="devNo" type=text class="inp_txt w48" id="devNo" value=""  placeholder='输入设备控制标识'/>
 <input type="button" class="txt_btn"  value="随 机" onClick="javascript:dev_id.value=randomString(4)">
 </div>
 <div class=line >
@@ -280,6 +286,7 @@ $('typediv2').style.display='none';
 <input type=button class="button" value="保存&重启" onClick="validate_form()"/>
 <input type=hidden name="mqtt_publish" id="mqtt_publish">
 <input type=hidden name="mqtt_subscr" id="mqtt_subscr">
+<input type=hidden name="dev_id" id="dev_id">
 <input type=hidden name="ckd" id="ckd" value="{ckd}">
 </div>     
 </form>

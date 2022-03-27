@@ -23,8 +23,6 @@ typedef  struct _TzhJsonDo{
 	char ap_ssid[36];
 	char ap_passwd[24];
 
-	//设置类型
-	char dev_flag[36];
 }TzhJsonDo;
 
 //将JSON的数据截入到系统里
