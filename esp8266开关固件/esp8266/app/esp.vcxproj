@@ -1,0 +1,140 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\at_custom.h" />
+    <ClInclude Include="..\include\c_types.h" />
+    <ClInclude Include="..\include\eagle_soc.h" />
+    <ClInclude Include="..\include\espconn.h" />
+    <ClInclude Include="..\include\espnow.h" />
+    <ClInclude Include="..\include\ets_sys.h" />
+    <ClInclude Include="..\include\gpio.h" />
+    <ClInclude Include="..\include\ip_addr.h" />
+    <ClInclude Include="..\include\json\json.h" />
+    <ClInclude Include="..\include\json\jsonparse.h" />
+    <ClInclude Include="..\include\json\jsontree.h" />
+    <ClInclude Include="..\include\mem.h" />
+    <ClInclude Include="..\include\osapi.h" />
+    <ClInclude Include="..\include\os_type.h" />
+    <ClInclude Include="..\include\ping.h" />
+    <ClInclude Include="..\include\pwm.h" />
+    <ClInclude Include="..\include\queue.h" />
+    <ClInclude Include="..\include\smartconfig.h" />
+    <ClInclude Include="..\include\sntp.h" />
+    <ClInclude Include="..\include\spi_flash.h" />
+    <ClInclude Include="..\include\upgrade.h" />
+    <ClInclude Include="..\include\user_interface.h" />
+    <ClInclude Include="include\driver\gpio16.h" />
+    <ClInclude Include="include\driver\i2c_master.h" />
+    <ClInclude Include="include\driver\key.h" />
+    <ClInclude Include="include\driver\spi.h" />
+    <ClInclude Include="include\driver\spi_overlap.h" />
+    <ClInclude Include="include\driver\spi_register.h" />
+    <ClInclude Include="include\driver\uart.h" />
+    <ClInclude Include="include\driver\uart_register.h" />
+    <ClInclude Include="user\c_base64.h" />
+    <ClInclude Include="user\data_struct.h" />
+    <ClInclude Include="user\JsonErrAP.h" />
+    <ClInclude Include="user\sbufhex.h" />
+    <ClInclude Include="user\webPageAP.h" />
+    <ClInclude Include="user\http_serv.h" />
+    <ClInclude Include="user\hx-crc.h" />
+    <ClInclude Include="user\hxnet-protocol.h" />
+    <ClInclude Include="user\json_do.h" />
+    <ClInclude Include="user\urlcode.h" />
+    <ClInclude Include="user\uwork.h" />
+    <ClInclude Include="user\trans_realtime.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="include\driver\spi_overlap.c" />
+    <ClCompile Include="user\JsonErrAP.c" />
+    <ClCompile Include="user\sbufhex.c" />
+    <ClCompile Include="user\webPageAP.c" />
+    <ClCompile Include="user\http_serv.c" />
+    <ClCompile Include="user\hxnet-protocol.c" />
+    <ClCompile Include="user\json_do.c" />
+    <ClCompile Include="user\key.c" />
+    <ClCompile Include="user\uart.c" />
+    <ClCompile Include="user\urlcode.c" />
+    <ClCompile Include="user\uwork.c" />
+    <ClCompile Include="user\user_main.c" />
+    <ClCompile Include="user\trans_realtime.c" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{CD66A9FB-8F44-4096-B93E-CBC2A6D17A53}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>esp</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
